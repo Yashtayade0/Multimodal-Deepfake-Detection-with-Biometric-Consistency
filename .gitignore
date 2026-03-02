@@ -1,0 +1,36 @@
+# Dependency directories
+node_modules/
+venv/
+env/
+__pycache__/
+
+# Build outputs
+dist/
+build/
+
+# Large files
+*.zip
+deepfake.zip
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Backups/Other
+project1 (1)/
+uploads/
