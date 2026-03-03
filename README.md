@@ -204,4 +204,3 @@ If you found this project useful:
 * 🤝 Contribute
 
 
-If you want next-level GitHub styling (badges, banners, animated demo, research-style formatting), I can upgrade this to 🔥 **Top-tier portfolio README**.
