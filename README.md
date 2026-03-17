@@ -1,5 +1,6 @@
-
+1
 # 🧠 Multimodal Deepfake Detection with Biometric Consistency
+
 
 A full-stack AI-powered system for detecting deepfake media using multimodal analysis and biometric consistency verification.
 
