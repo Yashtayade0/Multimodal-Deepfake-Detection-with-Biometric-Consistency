@@ -1,1521 +1,784 @@
-// import React, { useState, useEffect } from 'react';
-// import { Upload, Play, AlertCircle, CheckCircle, Activity, Eye, Mic, Brain, Zap, Waves, Shield, TrendingUp, Network } from 'lucide-react';
-
-// function App() {
-//   const [file, setFile] = useState(null);
-//   const [progress, setProgress] = useState(0);
-//   const [results, setResults] = useState(null);
-//   const [activeTab, setActiveTab] = useState('upload');
-//   const [fileType, setFileType] = useState(null); // 'image' | 'video' | null
-//   const [fromDownloadsVideos, setFromDownloadsVideos] = useState(false);
-//   const [forceDownloadsOverride, setForceDownloadsOverride] = useState(false);
-//   const [particles, setParticles] = useState([]);
-//   const [currentPhase, setCurrentPhase] = useState('');
-//   const [backendStatus, setBackendStatus] = useState('checking');
-
-//   useEffect(() => {
-//     const newParticles = Array.from({ length: 50 }, (_, i) => ({
-//       id: i,
-//       x: Math.random() * 100,
-//       y: Math.random() * 100,
-//       size: Math.random() * 3 + 1,
-//       duration: Math.random() * 20 + 10
-//     }));
-//     setParticles(newParticles);
-
-//     // Check backend status
-//     checkBackendStatus();
-//   }, []);
-
-//   const checkBackendStatus = async () => {
-//     try {
-//       const response = await fetch('http://localhost:5000/api/health');
-//       if (response.ok) {
-//         setBackendStatus('connected');
-//       } else {
-//         setBackendStatus('error');
-//       }
-//     } catch (error) {
-//       setBackendStatus('disconnected');
-//     }
-//   };
-
-//   const modalityData = {
-//     visual: { icon: Eye, name: 'Visual Analysis', color: 'from-blue-500 to-cyan-500', borderColor: 'border-blue-500' },
-//     audio: { icon: Mic, name: 'Audio Analysis', color: 'from-purple-500 to-pink-500', borderColor: 'border-purple-500' },
-//     physiological: { icon: Activity, name: 'Blink Dynamics', color: 'from-green-500 to-emerald-500', borderColor: 'border-green-500' }
-//   };
-
-//   // Generate a random overall confidence between 85 and 95 (one decimal)
-//   const randomConfidence = (min = 85, max = 95) => {
-//     const n = Math.random() * (max - min) + min;
-//     return Number(n.toFixed(1));
-//   };
-
-//   const handleFileUpload = (e) => {
-//     console.log('File input changed:', e.target.files);
-//     const uploadedFile = e.target.files[0];
-//     const inputId = e.target.id;
-//     // determine file type by input id first (we have separate inputs), fallback to mime type
-//     let detectedType = null;
-//     if (inputId === 'file-upload-video') detectedType = 'video';
-//     else if (inputId === 'file-upload-image') detectedType = 'image';
-//     else if (uploadedFile) {
-//       if (uploadedFile.type && uploadedFile.type.startsWith('video/')) detectedType = 'video';
-//       else if (uploadedFile.type && uploadedFile.type.startsWith('image/')) detectedType = 'image';
-//     }
-
-//     if (uploadedFile) {
-//       console.log('File selected:', uploadedFile.name, uploadedFile.type, uploadedFile.size, 'detectedType=', detectedType);
-//       // Debug: show any available path fields (may be undefined in browsers)
-//       console.log('uploadedFile props:', {
-//         name: uploadedFile.name,
-//         type: uploadedFile.type,
-//         size: uploadedFile.size,
-//         path: uploadedFile.path, // Electron/Node may provide this
-//         webkitRelativePath: uploadedFile.webkitRelativePath
-//       });
-//       setFile(uploadedFile);
-//       setFileType(detectedType);
-//       setResults(null);
-//       setActiveTab('upload'); // Reset to upload tab when new file is selected
-
-//       // Heuristic: try to detect if the file comes from a Downloads\Videos path.
-//       // Note: browsers do not expose full local file paths for security. Some environments (Electron)
-//       // expose `file.path`. We also check `webkitRelativePath` and filename patterns.
-//       const nameLower = (uploadedFile.name || '').toLowerCase();
-//       const pathField = (uploadedFile.path || uploadedFile.webkitRelativePath || '').toString().toLowerCase();
-//       // Exact Windows path to check (lowercased). Escape backslashes for literal matching.
-//       const targetPath = 'c:\\users\\user\\downloads\\videos';
-//       const targetPathAlt = 'c:/users/user/downloads/videos';
-//       const downloadsPattern = 'downloads\\videos'; // windows style
-//       const downloadsPatternAlt = 'downloads/videos'; // posix style
-//       // Match if the exact Windows path appears, or common downloads subpath appears, or filename contains the pattern.
-//       const fromDownloads = pathField.includes(targetPath) || pathField.includes(targetPathAlt) || pathField.includes(downloadsPattern) || pathField.includes(downloadsPatternAlt) || nameLower.includes(targetPath) || nameLower.includes(targetPathAlt) || nameLower.includes(downloadsPattern) || nameLower.includes(downloadsPatternAlt);
-//       setFromDownloadsVideos(!!fromDownloads);
-//       console.log('fromDownloadsVideos (auto-detect):', fromDownloads);
-//       console.log('forceDownloadsOverride (manual):', forceDownloadsOverride);
-//     } else {
-//       console.log('No file selected');
-//       setFromDownloadsVideos(false);
-//     }
-//   };
-
-//   const handleFileClick = () => {
-//     // kept for backward compatibility (will open image chooser)
-//     console.log('File input clicked');
-//     const fileInput = document.getElementById('file-upload-image');
-//     if (fileInput) fileInput.click();
-//   };
-
-//   const handleChoose = (type) => {
-//     const id = type === 'video' ? 'file-upload-video' : 'file-upload-image';
-//     const fileInput = document.getElementById(id);
-//     if (fileInput) fileInput.click();
-//   };
-
-//   const analyzeFile = async () => {
-//     if (!file) {
-//       alert('Please select a file first');
-//       return;
-//     }
-
-//     setProgress(0);
-//     setActiveTab('analysis');
-
-//     const phases = [
-//       'Uploading file...',
-//       'Extracting frames...',
-//       'Analyzing facial features...',
-//       'Processing audio signals...',
-//       'Detecting blink patterns...',
-//       'Computing biometric signatures...',
-//       'Checking cross-modal consistency...'
-//     ];
-
-//     let phaseIndex = 0;
-//     const phaseInterval = setInterval(() => {
-//       if (phaseIndex < phases.length) {
-//         setCurrentPhase(phases[phaseIndex]);
-//         phaseIndex++;
-//       }
-//     }, 2000);
-
-//     const progressInterval = setInterval(() => {
-//       setProgress(prev => {
-//         if (prev >= 90) return prev; // Stop at 90% until API response
-//         return prev + 2;
-//       });
-//     }, 100);
-
-//     try {
-//       const formData = new FormData();
-//       formData.append('file', file);
-
-//       const response = await fetch('http://localhost:5000/api/analyze', {
-//         method: 'POST',
-//         body: formData,
-//       });
-
-//       clearInterval(phaseInterval);
-//       clearInterval(progressInterval);
-//       setProgress(100);
-
-//       if (!response.ok) {
-//         const errorData = await response.json();
-//         throw new Error(errorData.error || 'Analysis failed');
-//       }
-
-//       const received = await response.json();
-//       console.log('Analysis results received:', received);
-
-//       // Check if the uploaded file is a video
-//       const isVideo = file.type.startsWith('video/');
-//       console.log('File is video:', isVideo);
-
-//       // Normalize backend response to the expected UI shape and clamp confidence
-//       let normalized = received;
-      
-//       // Handle both formats of responses (with and without overall)
-//             if (received.overall) {
-//         // For videos, keep the original result. For non-videos, invert the result
-//         const authentic = isVideo ? received.overall.authentic : !received.overall.authentic;
-//         console.log('Original authentic:', received.overall.authentic, 'Modified (for non-video):', authentic);
-
-//         const forceOverride = isVideo && (fromDownloadsVideos || forceDownloadsOverride);
-//         if (forceOverride) console.log('Applying forced Downloads\\Videos override -> DEEPFAKE');
-        
-//         normalized = {
-//           ...received,
-//           overall: {
-//             ...received.overall,
-//             // If the file is a video AND it originates from Downloads\\Videos or user forced it, force deepfake
-//             authentic: forceOverride ? false : authentic,
-//             confidence: randomConfidence(),
-//             verdict: forceOverride ? 'DEEPFAKE DETECTED' : (isVideo ? (received.overall.authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED') : (authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED'))
-//           }
-//         };
-//       } else if (received.confidence !== undefined || received.authentic !== undefined) {
-//         // For videos, keep the original result. For non-videos, invert the result
-//         const authentic = isVideo ? !!received.authentic : !received.authentic;
-//         console.log('Original authentic:', received.authentic, 'Modified (for non-video):', authentic);
-        
-//         const forceOverride2 = isVideo && (fromDownloadsVideos || forceDownloadsOverride);
-//         if (forceOverride2) console.log('Applying forced Downloads\\Videos override -> DEEPFAKE');
-//         normalized = {
-//           overall: {
-//             // If video & from Downloads\\Videos or user forced, force deepfake; otherwise use detection/inversion rules
-//             authentic: forceOverride2 ? false : (isVideo ? !!received.authentic : !received.authentic),
-//             confidence: randomConfidence(),
-//             verdict: forceOverride2 ? 'DEEPFAKE DETECTED' : (isVideo ? (received.authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED') : (!received.authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED'))
-//           },
-//           visual: received.visual || {},
-//           audio: received.audio || {},
-//           physiological: received.physiological || {},
-//           consistency: received.consistency || {}
-//         };
-//       } else if (received.overall) {
-//         normalized = {
-//           ...received,
-//           overall: {
-//             ...received.overall,
-//             confidence: randomConfidence()
-//           }
-//         };
-//       }
-
-//       setTimeout(() => {
-//         setResults(normalized);
-//         setActiveTab('results');
-//       }, 500);
-
-//     } catch (error) {
-//       clearInterval(phaseInterval);
-//       clearInterval(progressInterval);
-//       alert(`Analysis failed: ${error.message}`);
-//       setActiveTab('upload');
-//     }
-//   };
-
-//   const ModalityCard = ({ modality, data }) => {
-//     const Modal = modalityData[modality];
-//     const Icon = Modal.icon;
-    
-//     // Provide default values if data is missing
-//     const safeData = {
-//       score: data?.score || 0,
-//       status: data?.status || 'unknown',
-//       timeline: data?.timeline || [0, 0, 0, 0, 0]
-//     };
-    
-//     return (
-//       <div className="relative group">
-//         <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 rounded-2xl" />
-        
-//         <div className="relative bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 transform hover:scale-105">
-//           <div className="flex items-center gap-3 mb-6">
-//             <div className={`bg-gradient-to-br ${Modal.color} p-4 rounded-xl shadow-lg`}>
-//               <Icon className="w-7 h-7 text-white" />
-//             </div>
-//             <div>
-//               <h3 className="font-bold text-white text-lg">{Modal.name}</h3>
-//               <p className="text-sm text-gray-400">Real-time Detection</p>
-//             </div>
-//           </div>
-          
-//           <div className="space-y-4">
-//             <div className="flex justify-between items-end">
-//               <span className="text-gray-400 text-sm">Confidence Score</span>
-//               <div className="text-right">
-//                 <span className="text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                   {safeData.score}
-//                 </span>
-//                 <span className="text-xl text-gray-400">%</span>
-//               </div>
-//             </div>
-            
-//             <div className="relative w-full bg-gray-700/50 rounded-full h-3 overflow-hidden">
-//               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
-//               <div 
-//                 className={`bg-gradient-to-r ${Modal.color} h-3 rounded-full transition-all duration-1000 relative overflow-hidden`}
-//                 style={{ width: `${safeData.score}%` }}
-//               >
-//                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-//               </div>
-//             </div>
-            
-//             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm ${
-//               safeData.status === 'fake' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-//               safeData.status === 'suspicious' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-//               'bg-red-500/20 text-red-300 border border-red-500/30'
-//             }`}>
-//               <div className={`w-2 h-2 rounded-full animate-pulse ${
-//                 safeData.status === 'fake' ? 'bg-green-400' :
-//                 safeData.status === 'suspicious' ? 'bg-yellow-400' : 'bg-red-400'
-//               }`} />
-//               {safeData.status === 'fake' ? 'AUTHENTIC' : 
-//                safeData.status === 'suspicious' ? 'SUSPICIOUS' : 'FAKE'}
-//             </div>
-
-//             <div className="mt-4 pt-4 border-t border-gray-700/50">
-//               <div className="flex items-center gap-1 h-12">
-//                 {safeData.timeline.map((val, i) => (
-//                   <div key={i} className="flex-1 flex items-end">
-//                     <div 
-//                       className={`w-full bg-gradient-to-t ${Modal.color} rounded-t opacity-70 hover:opacity-100 transition-all`}
-//                       style={{ height: `${val}%` }}
-//                     />
-//                   </div>
-//                 ))}
-//               </div>
-//               <p className="text-xs text-gray-500 mt-2">Detection confidence over time</p>
-//             </div>
-            
-//             {/* Removed bullet points section */}
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900 text-white relative overflow-hidden">
-//       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-//         {particles.map(particle => (
-//           <div
-//             key={particle.id}
-//             className="absolute rounded-full bg-cyan-400/20"
-//             style={{
-//               left: `${particle.x}%`,
-//               top: `${particle.y}%`,
-//               width: `${particle.size}px`,
-//               height: `${particle.size}px`,
-//               animation: `float ${particle.duration}s infinite ease-in-out`
-//             }}
-//           />
-//         ))}
-//       </div>
-
-//       <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
-//       <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-
-//       <div className="relative z-10 p-8 max-w-7xl mx-auto">
-//         <div className="text-center mb-12">
-//           <div className="flex items-center justify-center gap-4 mb-6">
-//             <div className="relative">
-//               <Brain className="w-16 h-16 text-cyan-400 animate-pulse" />
-//               <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50 animate-pulse" />
-//             </div>
-//             <h1 className="text-6xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient">
-//               Multimodal Deepfake Detector
-//             </h1>
-//           </div>
-//           <p className="text-gray-400 text-xl flex items-center justify-center gap-2">
-//             <Shield className="w-5 h-5" />
-//             Advanced biometric consistency analysis with AI-powered detection
-//             <Network className="w-5 h-5" />
-//           </p>
-          
-//           {/* Backend Status Indicator */}
-//           <div className="mt-4 flex items-center justify-center gap-2">
-//             <div className={`w-3 h-3 rounded-full ${
-//               backendStatus === 'connected' ? 'bg-green-400 animate-pulse' :
-//               backendStatus === 'disconnected' ? 'bg-red-400' :
-//               backendStatus === 'error' ? 'bg-yellow-400' :
-//               'bg-gray-400 animate-pulse'
-//             }`} />
-//             <span className="text-sm text-gray-500">
-//               Backend: {
-//                 backendStatus === 'connected' ? 'Connected' :
-//                 backendStatus === 'disconnected' ? 'Disconnected' :
-//                 backendStatus === 'error' ? 'Error' :
-//                 'Checking...'
-//               }
-//             </span>
-//           </div>
-//         </div>
-
-//         <div className="flex gap-2 mb-8 bg-gray-800/30 backdrop-blur-lg rounded-2xl p-2 border border-gray-700/50">
-//           {['upload', 'analysis', 'results'].map(tab => (
-//             <button
-//               key={tab}
-//               onClick={() => setActiveTab(tab)}
-//               className={`flex-1 px-8 py-4 font-bold rounded-xl transition-all duration-300 ${
-//                 activeTab === tab
-//                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/50 transform scale-105'
-//                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
-//               }`}
-//             >
-//               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-//             </button>
-//           ))}
-//         </div>
-
-//         {activeTab === 'upload' && (
-//           <div className="max-w-3xl mx-auto">
-//             <div className="relative group">
-//               <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-              
-//               <div className="relative bg-gray-800/50 backdrop-blur-xl rounded-3xl p-16 border-2 border-dashed border-gray-600 hover:border-cyan-400 transition-all duration-300">
-//                 {/* Two separate hidden inputs for image and video so users can choose explicitly */}
-//                 <input
-//                   type="file"
-//                   id="file-upload-image"
-//                   accept="image/*"
-//                   className="hidden"
-//                   onChange={handleFileUpload}
-//                 />
-//                 <input
-//                   type="file"
-//                   id="file-upload-video"
-//                   accept="video/*"
-//                   className="hidden"
-//                   onChange={handleFileUpload}
-//                 />
-
-//                 <div className="cursor-default flex flex-col items-center">
-//                   <div className="relative mb-6">
-//                     <Upload className="w-20 h-20 text-cyan-400 animate-bounce" />
-//                     <div className="absolute inset-0 bg-cyan-400 blur-2xl opacity-50 animate-pulse" />
-//                   </div>
-//                   <h3 className="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                     Upload Media File
-//                   </h3>
-//                   <p className="text-gray-400 mb-6 text-lg">Choose Image or Video • Max 500MB</p>
-
-//                   <div className="flex gap-4 mb-6">
-//                     <button
-//                       type="button"
-//                       onClick={() => handleChoose('image')}
-//                       className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white px-8 py-3 rounded-xl font-bold text-md transition-all transform hover:scale-105 shadow-lg"
-//                     >
-//                       Upload Image
-//                     </button>
-
-//                     <button
-//                       type="button"
-//                       onClick={() => handleChoose('video')}
-//                       className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-bold text-md transition-all transform hover:scale-105 shadow-lg"
-//                     >
-//                       Upload Video
-//                     </button>
-//                   </div>
-
-//                   {/* <div className="flex items-center gap-3 mb-4">
-//                     <input
-//                       id="forceDownloads"
-//                       type="checkbox"
-//                       checked={forceDownloadsOverride}
-//                       onChange={(e) => setForceDownloadsOverride(e.target.checked)}
-//                       className="w-4 h-4 mt-0.5"
-//                     />
-//                     <label htmlFor="forceDownloads" className="text-sm text-gray-300 select-none">Force Deepfake (Downloads\\Videos)</label>
-//                   </div> */}
-
-//                   {file && (
-//                     <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 backdrop-blur-sm px-8 py-4 rounded-xl mb-6 border border-cyan-500/30">
-//                       <p className="text-cyan-300 font-semibold">{file.name} <span className="text-sm text-gray-400">({fileType || (file.type || '').split('/')[0]})</span></p>
-//                       <p className="text-gray-400 text-sm mt-1">Ready for analysis</p>
-//                     </div>
-//                   )}
-//                 </div>
-//               </div>
-//             </div>
-            
-//             {file && (
-//               <div className="mt-10 text-center">
-//                 {backendStatus !== 'connected' && (
-//                   <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl backdrop-blur-sm">
-//                     <p className="text-yellow-300 font-semibold mb-1">Backend Not Connected</p>
-//                     <p className="text-yellow-400/80 text-sm">
-//                       Please start the backend server first. Run <code className="bg-gray-800 px-2 py-1 rounded">start_backend.bat</code> or <code className="bg-gray-800 px-2 py-1 rounded">./start_backend.sh</code>
-//                     </p>
-//                   </div>
-//                 )}
-//                 <button
-//                   onClick={analyzeFile}
-//                   disabled={backendStatus !== 'connected'}
-//                   className={`relative group px-16 py-5 rounded-2xl font-black text-xl transition-all transform flex items-center gap-4 mx-auto shadow-2xl ${
-//                     backendStatus === 'connected' 
-//                       ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-600 hover:via-blue-700 hover:to-purple-700 text-white hover:scale-110 shadow-cyan-500/50' 
-//                       : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-//                   }`}
-//                 >
-//                   <div className={`absolute inset-0 rounded-2xl blur-xl opacity-50 transition-opacity ${
-//                     backendStatus === 'connected' ? 'bg-gradient-to-r from-cyan-400 to-purple-600 group-hover:opacity-75' : 'bg-gray-500'
-//                   }`} />
-//                   <Play className="w-7 h-7 relative z-10" />
-//                   <span className="relative z-10">
-//                     {backendStatus === 'connected' ? 'Start Deep Analysis' : 'Backend Required'}
-//                   </span>
-//                   <Zap className="w-7 h-7 relative z-10 animate-pulse" />
-//                 </button>
-//               </div>
-//             )}
-//           </div>
-//         )}
-
-//         {activeTab === 'analysis' && (
-//           <div className="max-w-5xl mx-auto">
-//             <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-10 border border-gray-700/50 shadow-2xl">
-//               <div className="flex items-center gap-4 mb-10">
-//                 <div className="relative">
-//                   <Zap className="w-12 h-12 text-yellow-400 animate-pulse" />
-//                   <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse" />
-//                 </div>
-//                 <div>
-//                   <h2 className="text-4xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                     Analyzing Media
-//                   </h2>
-//                   <p className="text-cyan-400 font-semibold mt-1">{currentPhase}</p>
-//                 </div>
-//               </div>
-
-//               <div className="mb-10">
-//                 <div className="flex justify-between mb-3">
-//                   <span className="text-gray-300 font-semibold">Processing Pipeline</span>
-//                   <span className="text-cyan-400 font-bold text-2xl">{Math.round(progress)}%</span>
-//                 </div>
-//                 <div className="relative w-full bg-gray-700/50 rounded-full h-4 overflow-hidden">
-//                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-//                   <div 
-//                     className="bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 h-4 rounded-full transition-all duration-300 relative overflow-hidden"
-//                     style={{ width: `${progress}%` }}
-//                   >
-//                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-//                   </div>
-//                 </div>
-//               </div>
-
-//               <div className="grid grid-cols-3 gap-6">
-//                 {Object.entries(modalityData).map(([key, modal], idx) => {
-//                   const Icon = modal.icon;
-//                   const isActive = progress > 33 * (idx + 1);
-//                   return (
-//                     <div key={key} className={`bg-gray-700/30 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-500 ${
-//                       isActive ? `${modal.borderColor} border-2 shadow-lg` : 'border-gray-700'
-//                     }`}>
-//                       <div className="flex flex-col items-center">
-//                         <div className={`p-4 rounded-xl mb-4 transition-all duration-500 ${
-//                           isActive ? `bg-gradient-to-br ${modal.color}` : 'bg-gray-600'
-//                         }`}>
-//                           <Icon className={`w-10 h-10 ${isActive ? 'text-white animate-pulse' : 'text-gray-400'}`} />
-//                         </div>
-//                         <span className="text-sm font-bold text-center text-gray-300 mb-3">{modal.name}</span>
-//                         {isActive && (
-//                           <div className="flex items-center gap-2">
-//                             <CheckCircle className="w-6 h-6 text-green-400 animate-pulse" />
-//                             <span className="text-xs text-green-400 font-semibold">Complete</span>
-//                           </div>
-//                         )}
-//                         {!isActive && (
-//                           <div className="flex items-center gap-2">
-//                             <div className="w-6 h-6 border-2 border-gray-500 border-t-cyan-400 rounded-full animate-spin" />
-//                             <span className="text-xs text-gray-500 font-semibold">Processing</span>
-//                           </div>
-//                         )}
-//                       </div>
-//                     </div>
-//                   );
-//                 })}
-//               </div>
-
-//               <div className="mt-10 flex justify-center">
-//                 <div className="flex items-center gap-4">
-//                   {[...Array(5)].map((_, i) => (
-//                     <React.Fragment key={i}>
-//                       <div className={`w-4 h-4 rounded-full transition-all duration-500 ${
-//                         progress > i * 20 ? 'bg-cyan-400 shadow-lg shadow-cyan-400/50 animate-pulse' : 'bg-gray-600'
-//                       }`} />
-//                       {i < 4 && <Waves className="w-6 h-6 text-gray-600" />}
-//                     </React.Fragment>
-//                   ))}
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-
-//         {activeTab === 'results' && results && results.overall && (
-//           <div className="space-y-8 animate-fadeIn">
-//             <div className="relative group">
-//               <div className={`absolute inset-0 blur-2xl opacity-30 rounded-3xl ${
-//                 results.overall?.authentic ? 'bg-green-500' : 'bg-red-500'
-//               }`} />
-              
-//               <div className={`relative rounded-3xl p-10 border-2 backdrop-blur-xl ${
-//                 results.overall?.authentic 
-//                   ? 'bg-green-500/10 border-green-500' 
-//                   : 'bg-red-500/10 border-red-500'
-//               }`}>
-//                 <div className="flex items-center justify-between">
-//                   <div className="flex items-center gap-6">
-//                     {results.overall?.authentic ? (
-//                       <div className="relative">
-//                         <CheckCircle className="w-20 h-20 text-green-400 animate-pulse" />
-//                         <div className="absolute inset-0 bg-green-400 blur-xl opacity-50" />
-//                       </div>
-//                     ) : (
-//                       <div className="relative">
-//                         <AlertCircle className="w-20 h-20 text-red-400 animate-pulse" />
-//                         <div className="absolute inset-0 bg-red-400 blur-xl opacity-50" />
-//                       </div>
-//                     )}
-//                     <div>
-//                       <h2 className="text-5xl font-black mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                         {!results.overall?.authentic ? 'DEEPFAKE DETECTED' : 'AUTHENTIC'}
-//                       </h2>
-//                       <p className="text-gray-400 text-lg flex items-center gap-2">
-//                         <TrendingUp className="w-5 h-5" />
-//                         Multimodal analysis complete
-//                       </p>
-//                     </div>
-//                   </div>
-//                   <div className="text-right">
-//                     <div className="text-7xl font-black bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-//                       {results.overall?.confidence || 0}
-//                       <span className="text-4xl">%</span>
-//                     </div>
-//                     <div className="text-gray-400 text-lg mt-2">Confidence Level</div>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-//               <ModalityCard modality="visual" data={results.visual || {}} />
-//               <ModalityCard modality="audio" data={results.audio || {}} />
-//               <ModalityCard modality="physiological" data={results.physiological || {}} />
-//             </div>
-
-//             <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-10 border border-gray-700/50 shadow-2xl">
-//               <h3 className="text-3xl font-black mb-8 flex items-center gap-4">
-//                 <div className="relative">
-//                   <Network className="w-10 h-10 text-cyan-400 animate-pulse" />
-//                   <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50" />
-//                 </div>
-//                 <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                   Cross-Modal Consistency Matrix
-//                 </span>
-//               </h3>
-              
-//               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-//                 {(() => {
-//                   // Extra safety check for results.consistency
-//                   const consistency = results?.consistency || {};
-//                   const threshold = consistency.threshold || 0.75;
-//                   return [
-//                     { pair: 'Visual ↔ Audio', value: consistency.visualAudio || 0.75, color: 'from-blue-500 to-purple-500', threshold },
-//                     { pair: 'Visual ↔ Blink', value: consistency.visualBlink || 0.75, color: 'from-blue-500 to-green-500', threshold },
-//                     { pair: 'Audio ↔ Blink', value: consistency.audioBlink || 0.75, color: 'from-purple-500 to-green-500', threshold }
-//                   ];
-//                 })().map((item, i) => (
-//                   <div key={i} className="relative group">
-//                     <div className="absolute inset-0 bg-gradient-to-r opacity-10 blur-xl rounded-2xl" />
-                    
-//                     <div className="relative bg-gray-700/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-600 hover:border-gray-500 transition-all">
-//                       <div className="text-sm text-gray-400 mb-3 font-semibold">{item.pair}</div>
-//                       <div className="text-5xl font-black mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-//                         {item.value.toFixed(2)}
-//                       </div>
-//                       <div className="relative w-full bg-gray-600/50 rounded-full h-3 overflow-hidden mb-3">
-//                         <div 
-//                           className={`h-3 rounded-full bg-gradient-to-r ${item.value < item.threshold ? 'from-red-500 to-red-600' : 'from-green-500 to-emerald-500'} transition-all duration-1000`}
-//                           style={{ width: `${item.value * 100}%` }}
-//                         >
-//                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-//                         </div>
-//                       </div>
-//                       <div className="flex items-center justify-between text-xs">
-//                         <span className="text-gray-500">Threshold: {item.threshold}</span>
-//                         <span className={`font-bold ${item.value < item.threshold ? 'text-red-400' : 'text-green-400'}`}>
-//                           {item.value < item.threshold ? 'FAILED' : 'PASSED'}
-//                         </span>
-//                       </div>
-//                     </div>
-//                   </div>
-//                 ))}
-//               </div>
-
-//               <div className="relative">
-//                 <div className="absolute inset-0 bg-yellow-500/5 blur-xl rounded-2xl" />
-//                 <div className="relative p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl backdrop-blur-sm">
-//                   <div className="flex items-start gap-4">
-//                     <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1 animate-pulse" />
-//                     <div>
-//                       <p className="text-yellow-300 font-semibold mb-1">Anomaly Detected</p>
-//                       <p className="text-yellow-400/80 text-sm">
-//                         Cross-modal inconsistencies detected below threshold (0.75). The biometric signatures across visual, audio, and physiological channels show significant divergence, indicating potential synthetic manipulation or deepfake generation.
-//                       </p>
-//                     </div>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-
-//       <style>{`
-//         @keyframes float {
-//           0%, 100% { transform: translateY(0px); }
-//           50% { transform: translateY(-20px); }
-//         }
-        
-//         @keyframes shimmer {
-//           0% { transform: translateX(-100%); }
-//           100% { transform: translateX(100%); }
-//         }
-        
-//         @keyframes gradient {
-//           0%, 100% { background-position: 0% 50%; }
-//           50% { background-position: 100% 50%; }
-//         }
-        
-//         @keyframes fadeIn {
-//           from { opacity: 0; transform: translateY(20px); }
-//           to { opacity: 1; transform: translateY(0); }
-//         }
-        
-//         .animate-shimmer {
-//           animation: shimmer 2s infinite;
-//         }
-        
-//         .animate-gradient {
-//           background-size: 200% 200%;
-//           animation: gradient 3s ease infinite;
-//         }
-        
-//         .animate-fadeIn {
-//           animation: fadeIn 0.6s ease-out;
-//         }
-//       `}</style>
-//     </div>
-//   );
-// }
-
-// export default App;
-
-
-
-// new
-
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Upload, Play, AlertCircle, CheckCircle, Activity, Eye, Mic, Brain, Zap, Waves, Shield, TrendingUp, Network
+  Upload, Play, AlertTriangle, CheckCircle2, Activity, Eye, Mic,
+  Brain, Zap, Shield, TrendingUp, BarChart3, FileVideo, FileImage,
+  Loader2, ShieldCheck, ShieldAlert, X, ChevronRight, Info,
+  Cpu, Lock, FlaskConical, Github, Globe, BookOpen, Users, Layers
 } from 'lucide-react';
 
-function App() {
+/* ================================================================
+   CONSTANTS
+   ================================================================ */
+const API_BASE = 'http://localhost:5000';
+
+/* ================================================================
+   APP
+   ================================================================ */
+export default function App() {
   const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
+  const [fileType, setFileType] = useState(null);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
-  const [activeTab, setActiveTab] = useState('upload');
-  const [fileType, setFileType] = useState(null); // 'image' | 'video' | null
-  const [fromDownloadsVideos, setFromDownloadsVideos] = useState(false);
-  const [fromNumericName, setFromNumericName] = useState(false);
-  const [particles, setParticles] = useState([]);
-  const [currentPhase, setCurrentPhase] = useState('');
-  const [backendStatus, setBackendStatus] = useState('checking');
+  const [phase, setPhase] = useState('upload'); // upload | analyzing | results
+  const [currentStep, setCurrentStep] = useState('');
+  const [backendOk, setBackendOk] = useState(null); // null=checking, true/false
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const newParticles = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 20 + 10
-    }));
-    setParticles(newParticles);
-
-    // Check backend status
-    checkBackendStatus();
+  /* ---------- backend health ---------- */
+  const checkHealth = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/health`);
+      setBackendOk(r.ok);
+    } catch {
+      setBackendOk(false);
+    }
   }, []);
 
-  const checkBackendStatus = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/health');
-      if (response.ok) {
-        setBackendStatus('connected');
-      } else {
-        setBackendStatus('error');
-      }
-    } catch (error) {
-      setBackendStatus('disconnected');
+  useEffect(() => {
+    checkHealth();
+    const id = setInterval(checkHealth, 15000);
+    return () => clearInterval(id);
+  }, [checkHealth]);
+
+
+  const clearFile = () => {
+    setFile(null);
+    setFilePreview(null);
+    setFileType(null);
+    setResults(null);
+    setError(null);
+    setPhase('upload');
+  };
+
+  /* ---------- drag & drop---------- */
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const f = e.dataTransfer?.files?.[0];
+    if (f) {
+      handleFileDrop(f);
     }
   };
 
-  const modalityData = {
-    visual: { icon: Eye, name: 'Visual Analysis', color: 'from-blue-500 to-cyan-500', borderColor: 'border-blue-500' },
-    audio: { icon: Mic, name: 'Audio Analysis', color: 'from-purple-500 to-pink-500', borderColor: 'border-purple-500' },
-    physiological: { icon: Activity, name: 'Blink Dynamics', color: 'from-green-500 to-emerald-500', borderColor: 'border-green-500' }
-  };
-
-  // Generate a random overall confidence between min and max (one decimal)
-  const randomConfidence = (min = 85, max = 95) => {
-    const n = Math.random() * (max - min) + min;
-    return Number(n.toFixed(1));
-  };
-
-  const handleFileUpload = (e) => {
-    console.log('File input changed:', e.target.files);
-    const uploadedFile = e.target.files[0];
-    const inputId = e.target.id;
-    // determine file type by input id first (we have separate inputs), fallback to mime type
-    let detectedType = null;
-    if (inputId === 'file-upload-video') detectedType = 'video';
-    else if (inputId === 'file-upload-image') detectedType = 'image';
-    else if (uploadedFile) {
-      if (uploadedFile.type && uploadedFile.type.startsWith('video/')) detectedType = 'video';
-      else if (uploadedFile.type && uploadedFile.type.startsWith('image/')) detectedType = 'image';
-    }
-
-    if (uploadedFile) {
-      console.log('File selected:', uploadedFile.name, uploadedFile.type, uploadedFile.size, 'detectedType=', detectedType);
-      // Debug: show any available path fields (may be undefined in browsers)
-      console.log('uploadedFile props:', {
-        name: uploadedFile.name,
-        type: uploadedFile.type,
-        size: uploadedFile.size,
-        path: uploadedFile.path,
-        webkitRelativePath: uploadedFile.webkitRelativePath
-      });
-      setFile(uploadedFile);
-      setFileType(detectedType);
-      setResults(null);
-      setActiveTab('upload'); // Reset to upload tab when new file is selected
-
-      // ------------------------------------------------------------
-      // SIMPLIFIED/RELIABLE DETECTION (works in Electron / Node) - path
-      // ------------------------------------------------------------
-      try {
-        const fullPathRaw = uploadedFile.path || uploadedFile.webkitRelativePath || '';
-        const fullPath = (typeof fullPathRaw === 'string') ? fullPathRaw.toLowerCase() : '';
-        const downloadsPathWin = 'c:\\users\\user\\downloads\\videos';
-        const downloadsPathPosix = 'c:/users/user/downloads/videos';
-        const fromDownloads = fullPath.includes(downloadsPathWin) || fullPath.includes(downloadsPathPosix);
-        setFromDownloadsVideos(!!fromDownloads);
-        console.log('fromDownloadsVideos (auto-detect):', fromDownloads);
-      } catch (err) {
-        console.log('Error while detecting downloads path:', err);
-        setFromDownloadsVideos(false);
-      }
-
-      // -----------------------------
-      // SIMPLE NUMERIC-NAME DETECTION
-      // Only matches simple base names that are digits only (e.g. "1.mp4", "42.mov")
-      // -----------------------------
-      try {
-        const name = uploadedFile.name || '';
-        const lastDot = name.lastIndexOf('.');
-        const base = lastDot > 0 ? name.slice(0, lastDot) : name;
-        const isNumericName = /^\d+$/.test(base.trim());
-        setFromNumericName(isNumericName);
-        console.log('fromNumericName (auto-detect):', isNumericName, 'base=', base);
-      } catch (err) {
-        console.log('Error while detecting numeric filename:', err);
-        setFromNumericName(false);
-      }
-    } else {
-      console.log('No file selected');
-      setFromDownloadsVideos(false);
-      setFromNumericName(false);
-    }
-  };
-
-  const handleFileClick = () => {
-    // kept for backward compatibility (will open image chooser)
-    console.log('File input clicked');
-    const fileInput = document.getElementById('file-upload-image');
-    if (fileInput) fileInput.click();
-  };
-
-  const handleChoose = (type) => {
-    const id = type === 'video' ? 'file-upload-video' : 'file-upload-image';
-    const fileInput = document.getElementById(id);
-    if (fileInput) fileInput.click();
-  };
-
-  const analyzeFile = async () => {
-    if (!file) {
-      alert('Please select a file first');
-      return;
-    }
-
+  const handleFileDrop = (f) => {
+    setError(null);
+    setResults(null);
     setProgress(0);
-    setActiveTab('analysis');
+    setPhase('upload');
 
-    const phases = [
-      'Uploading file...',
-      'Extracting frames...',
-      'Analyzing facial features...',
-      'Processing audio signals...',
-      'Detecting blink patterns...',
-      'Computing biometric signatures...',
-      'Checking cross-modal consistency...'
+    const isVid = f.type?.startsWith('video/');
+    const isImg = f.type?.startsWith('image/');
+    setFileType(isVid ? 'video' : isImg ? 'image' : null);
+    setFile(f);
+
+    if (isImg) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setFilePreview(ev.target.result);
+      reader.readAsDataURL(f);
+    } else if (isVid) {
+      setFilePreview(URL.createObjectURL(f));
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const onFilePick = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    handleFileDrop(f);
+  };
+
+  /* ---------- analysis ---------- */
+  const startAnalysis = async () => {
+    if (!file) return;
+    setError(null);
+    setPhase('analyzing');
+    setProgress(0);
+
+    const steps = [
+      'Uploading media…',
+      'Extracting visual features…',
+      'Running face detection (MTCNN)…',
+      'Analyzing with EfficientNet model…',
+      'Extracting audio spectrum…',
+      'Analyzing blink dynamics…',
+      'Computing cross-modal consistency…',
+      'Finalizing verdict…'
     ];
 
-    let phaseIndex = 0;
-    const phaseInterval = setInterval(() => {
-      if (phaseIndex < phases.length) {
-        setCurrentPhase(phases[phaseIndex]);
-        phaseIndex++;
+    let stepIdx = 0;
+    const stepTimer = setInterval(() => {
+      if (stepIdx < steps.length) {
+        setCurrentStep(steps[stepIdx]);
+        stepIdx++;
       }
-    }, 2000);
+    }, 1800);
 
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90) return prev; // Stop at 90% until API response
-        return prev + 2;
-      });
-    }, 100);
+    const progTimer = setInterval(() => {
+      setProgress((p) => (p >= 88 ? p : p + 1.5));
+    }, 200);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const fd = new FormData();
+      fd.append('file', file);
 
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const resp = await fetch(`${API_BASE}/api/analyze`, {
         method: 'POST',
-        body: formData,
+        body: fd,
       });
 
-      clearInterval(phaseInterval);
-      clearInterval(progressInterval);
+      clearInterval(stepTimer);
+      clearInterval(progTimer);
       setProgress(100);
+      setCurrentStep('Analysis complete');
 
-      if (!response.ok) {
-        let errorMsg = 'Analysis failed';
-        try {
-          const errorData = await response.json();
-          errorMsg = errorData.error || JSON.stringify(errorData);
-        } catch (e) {
-          // ignore JSON parse errors
-        }
-        throw new Error(errorMsg);
+      if (!resp.ok) {
+        let msg = 'Analysis failed';
+        try { msg = (await resp.json()).error || msg; } catch {}
+        throw new Error(msg);
       }
 
-      const received = await response.json();
-      console.log('Analysis results received:', received);
+      const data = await resp.json();
+      console.log('Backend result:', data);
 
-      // Check if the uploaded file is a video
-      const isVideo = !!(file && (file.type || '').startsWith('video/'));
-      console.log('File is video:', isVideo);
-
-      // Normalize backend response to the expected UI shape and clamp confidence
-      let normalized = received;
-
-      // Handle multiple possible response formats
-      if (received.overall) {
-        const originalAuthentic = !!received.overall.authentic;
-        const authentic = isVideo ? originalAuthentic : !originalAuthentic;
-        // override if video AND (downloads path OR numeric name)
-        const forceOverride = isVideo && (fromDownloadsVideos || fromNumericName);
-        normalized = {
-          ...received,
-          overall: {
-            ...received.overall,
-            authentic: forceOverride ? false : authentic,
-            confidence: randomConfidence(),
-            verdict: forceOverride ? 'DEEPFAKE DETECTED' : (isVideo ? (originalAuthentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED') : (authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED'))
-          }
-        };
-      } else if (received.confidence !== undefined || received.authentic !== undefined) {
-        const originalAuthentic = !!received.authentic;
-        const authentic = isVideo ? originalAuthentic : !originalAuthentic;
-        const forceOverride = isVideo && (fromDownloadsVideos || fromNumericName);
-        normalized = {
-          overall: {
-            authentic: forceOverride ? false : authentic,
-            confidence: randomConfidence(),
-            verdict: forceOverride ? 'DEEPFAKE DETECTED' : (isVideo ? (originalAuthentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED') : (authentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED'))
-          },
-          visual: received.visual || {},
-          audio: received.audio || {},
-          physiological: received.physiological || {},
-          consistency: received.consistency || {}
-        };
-      } else {
-        // Fallback: ensure structure exists
-        normalized = {
-          overall: {
-            authentic: true,
-            confidence: randomConfidence(),
-            verdict: 'AUTHENTIC'
-          },
-          visual: received.visual || {},
-          audio: received.audio || {},
-          physiological: received.physiological || {},
-          consistency: received.consistency || {}
-        };
-      }
-
-      // ---------------------------------------------------------------------
-      // ABSOLUTE OVERRIDE: If this IS a video and the auto-detect found that the
-      // file path contains C:\Users\USER\Downloads\videos OR filename is numeric,
-      // then ALWAYS mark it as DEEPFAKE. This is a final guarantee before showing results.
-      // Note: relies on browser file.name (numeric detection) and optional file.path.
-      // ---------------------------------------------------------------------
-      try {
-        const finalForceOverride = isVideo && (fromDownloadsVideos || fromNumericName);
-        if (finalForceOverride) {
-          normalized.overall = {
-            ...normalized.overall,
-            authentic: false,
-            verdict: 'DEEPFAKE DETECTED',
-            // optionally raise the confidence for forced override
-            confidence: randomConfidence(90, 98)
-          };
-
-          // Optionally, mark individual modalities as suspicious/fake if present
-          normalized.visual = { ...(normalized.visual || {}), status: 'fake' };
-          normalized.audio = { ...(normalized.audio || {}), status: 'suspicious' };
-          normalized.physiological = { ...(normalized.physiological || {}), status: 'suspicious' };
-          if (!normalized.consistency) normalized.consistency = {};
-        }
-      } catch (err) {
-        console.warn('Error applying final force override:', err);
-      }
-
-      // Small delay for smooth UI transition
       setTimeout(() => {
-        setResults(normalized);
-        setActiveTab('results');
-      }, 500);
-
-    } catch (error) {
-      clearInterval(phaseInterval);
-      clearInterval(progressInterval);
-      alert(`Analysis failed: ${error.message}`);
-      setActiveTab('upload');
+        setResults(data);
+        setPhase('results');
+      }, 600);
+    } catch (err) {
+      clearInterval(stepTimer);
+      clearInterval(progTimer);
+      setError(err.message);
+      setPhase('upload');
     }
   };
 
-  const ModalityCard = ({ modality, data }) => {
-    const Modal = modalityData[modality];
-    const Icon = Modal.icon;
-
-    // Provide default values if data is missing
-    const safeData = {
-      score: data?.score || 0,
-      status: data?.status || 'unknown',
-      timeline: data?.timeline || [0, 0, 0, 0, 0]
-    };
-
-    return (
-      <div className="relative group">
-        <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 rounded-2xl" />
-
-        <div className="relative bg-gray-800/50 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 transform hover:scale-105">
-          <div className="flex items-center gap-3 mb-6">
-            <div className={`bg-gradient-to-br ${Modal.color} p-4 rounded-xl shadow-lg`}>
-              <Icon className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg">{Modal.name}</h3>
-              <p className="text-sm text-gray-400">Real-time Detection</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-end">
-              <span className="text-gray-400 text-sm">Confidence Score</span>
-              <div className="text-right">
-                <span className="text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                  {safeData.score}
-                </span>
-                <span className="text-xl text-gray-400">%</span>
-              </div>
-            </div>
-
-            <div className="relative w-full bg-gray-700/50 rounded-full h-3 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
-              <div
-                className={`bg-gradient-to-r ${Modal.color} h-3 rounded-full transition-all duration-1000 relative overflow-hidden`}
-                style={{ width: `${safeData.score}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-              </div>
-            </div>
-
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold backdrop-blur-sm ${
-              safeData.status === 'fake' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-              safeData.status === 'suspicious' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-              'bg-red-500/20 text-red-300 border border-red-500/30'
-            }`}>
-              <div className={`w-2 h-2 rounded-full animate-pulse ${
-                safeData.status === 'fake' ? 'bg-green-400' :
-                safeData.status === 'suspicious' ? 'bg-yellow-400' : 'bg-red-400'
-              }`} />
-              {safeData.status === 'fake' ? 'AUTHENTIC' :
-               safeData.status === 'suspicious' ? 'SUSPICIOUS' : 'FAKE'}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-700/50">
-              <div className="flex items-center gap-1 h-12">
-                {safeData.timeline.map((val, i) => (
-                  <div key={i} className="flex-1 flex items-end">
-                    <div
-                      className={`w-full bg-gradient-to-t ${Modal.color} rounded-t opacity-70 hover:opacity-100 transition-all`}
-                      style={{ height: `${val}%` }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">Detection confidence over time</p>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    );
-  };
-
+  /* ================================================================
+     RENDER
+     ================================================================ */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900 text-white relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {particles.map(particle => (
-          <div
-            key={particle.id}
-            className="absolute rounded-full bg-cyan-400/20"
-            style={{
-              left: `${particle.x}%`,
-              top: `${particle.y}%`,
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              animation: `float ${particle.duration}s infinite ease-in-out`
-            }}
+    <div className="min-h-screen relative" style={{ background: 'var(--bg-primary)' }}>
+      {/* Ambient orbs */}
+      <div className="ambient-orb animate-float" style={{ width: 500, height: 500, top: -100, right: -100, background: 'radial-gradient(circle, rgba(34,211,238,0.08), transparent 70%)' }} />
+      <div className="ambient-orb" style={{ width: 400, height: 400, bottom: -50, left: -80, background: 'radial-gradient(circle, rgba(139,92,246,0.07), transparent 70%)', animationDelay: '3s', animation: 'float 8s ease-in-out infinite' }} />
+      <div className="ambient-orb" style={{ width: 300, height: 300, top: '50%', left: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.05), transparent 70%)', animation: 'float 10s ease-in-out infinite' }} />
+
+      {/* Content */}
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* Header */}
+        <Header backendOk={backendOk} />
+
+        {/* Main area */}
+        {phase === 'upload' && (
+          <UploadSection
+            file={file}
+            fileType={fileType}
+            filePreview={filePreview}
+            onFilePick={onFilePick}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            clearFile={clearFile}
+            startAnalysis={startAnalysis}
+            backendOk={backendOk}
+            error={error}
           />
-        ))}
+        )}
+
+        {phase === 'analyzing' && (
+          <AnalyzingSection progress={progress} currentStep={currentStep} />
+        )}
+
+        {phase === 'results' && results && (
+          <ResultsSection results={results} fileType={fileType} onReset={clearFile} />
+        )}
+
+        {/* About section — always visible */}
+        <AboutSection />
       </div>
-
-      <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-
-      <div className="relative z-10 p-8 max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="relative">
-              <Brain className="w-16 h-16 text-cyan-400 animate-pulse" />
-              <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50 animate-pulse" />
-            </div>
-            <h1 className="text-6xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient">
-              Multimodal Deepfake Detector
-            </h1>
-          </div>
-          <p className="text-gray-400 text-xl flex items-center justify-center gap-2">
-            <Shield className="w-5 h-5" />
-            Advanced biometric consistency analysis with AI-powered detection
-            <Network className="w-5 h-5" />
-          </p>
-
-          {/* Backend Status Indicator */}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${
-              backendStatus === 'connected' ? 'bg-green-400 animate-pulse' :
-              backendStatus === 'disconnected' ? 'bg-red-400' :
-              backendStatus === 'error' ? 'bg-yellow-400' :
-              'bg-gray-400 animate-pulse'
-            }`} />
-            <span className="text-sm text-gray-500">
-              Backend: {
-                backendStatus === 'connected' ? 'Connected' :
-                backendStatus === 'disconnected' ? 'Disconnected' :
-                backendStatus === 'error' ? 'Error' :
-                'Checking...'
-              }
-            </span>
-          </div>
-        </div>
-
-        <div className="flex gap-2 mb-8 bg-gray-800/30 backdrop-blur-lg rounded-2xl p-2 border border-gray-700/50">
-          {['upload', 'analysis', 'results'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 px-8 py-4 font-bold rounded-xl transition-all duration-300 ${
-                activeTab === tab
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/50 transform scale-105'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700/50'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'upload' && (
-          <div className="max-w-3xl mx-auto">
-            <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500" />
-
-              <div className="relative bg-gray-800/50 backdrop-blur-xl rounded-3xl p-16 border-2 border-dashed border-gray-600 hover:border-cyan-400 transition-all duration-300">
-                {/* Two separate hidden inputs for image and video so users can choose explicitly */}
-                <input
-                  type="file"
-                  id="file-upload-image"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <input
-                  type="file"
-                  id="file-upload-video"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-
-                <div className="cursor-default flex flex-col items-center">
-                  <div className="relative mb-6">
-                    <Upload className="w-20 h-20 text-cyan-400 animate-bounce" />
-                    <div className="absolute inset-0 bg-cyan-400 blur-2xl opacity-50 animate-pulse" />
-                  </div>
-                  <h3 className="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                    Upload Media File
-                  </h3>
-                  <p className="text-gray-400 mb-6 text-lg">Choose Image or Video • Max 500MB</p>
-
-                  <div className="flex gap-4 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => handleChoose('image')}
-                      className="bg-gradient-to-r from-green-500 to-cyan-500 hover:from-green-600 hover:to-cyan-600 text-white px-8 py-3 rounded-xl font-bold text-md transition-all transform hover:scale-105 shadow-lg"
-                    >
-                      Upload Image
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleChoose('video')}
-                      className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-bold text-md transition-all transform hover:scale-105 shadow-lg"
-                    >
-                      Upload Video
-                    </button>
-                  </div>
-
-                  {file && (
-                    <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 backdrop-blur-sm px-8 py-4 rounded-xl mb-6 border border-cyan-500/30">
-                      <p className="text-cyan-300 font-semibold">{file.name} <span className="text-sm text-gray-400">({fileType || (file.type || '').split('/')[0]})</span></p>
-                      <p className="text-gray-400 text-sm mt-1">Ready for analysis</p>
-                      <p className="text-gray-400 text-xs mt-1">Detected local-path Downloads\Videos: {fromDownloadsVideos ? 'Yes' : 'No'}</p>
-                      <p className="text-gray-400 text-xs mt-1">Detected numeric filename: {fromNumericName ? 'Yes' : 'No'}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {file && (
-              <div className="mt-10 text-center">
-                {backendStatus !== 'connected' && (
-                  <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl backdrop-blur-sm">
-                    <p className="text-yellow-300 font-semibold mb-1">Backend Not Connected</p>
-                    <p className="text-yellow-400/80 text-sm">
-                      Please start the backend server first. Run <code className="bg-gray-800 px-2 py-1 rounded">start_backend.bat</code> or <code className="bg-gray-800 px-2 py-1 rounded">./start_backend.sh</code>
-                    </p>
-                  </div>
-                )}
-                <button
-                  onClick={analyzeFile}
-                  disabled={backendStatus !== 'connected'}
-                  className={`relative group px-16 py-5 rounded-2xl font-black text-xl transition-all transform flex items-center gap-4 mx-auto shadow-2xl ${
-                    backendStatus === 'connected'
-                      ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 hover:from-cyan-600 hover:via-blue-700 hover:to-purple-700 text-white hover:scale-110 shadow-cyan-500/50'
-                      : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <div className={`absolute inset-0 rounded-2xl blur-xl opacity-50 transition-opacity ${
-                    backendStatus === 'connected' ? 'bg-gradient-to-r from-cyan-400 to-purple-600 group-hover:opacity-75' : 'bg-gray-500'
-                  }`} />
-                  <Play className="w-7 h-7 relative z-10" />
-                  <span className="relative z-10">
-                    {backendStatus === 'connected' ? 'Start Deep Analysis' : 'Backend Required'}
-                  </span>
-                  <Zap className="w-7 h-7 relative z-10 animate-pulse" />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'analysis' && (
-          <div className="max-w-5xl mx-auto">
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-10 border border-gray-700/50 shadow-2xl">
-              <div className="flex items-center gap-4 mb-10">
-                <div className="relative">
-                  <Zap className="w-12 h-12 text-yellow-400 animate-pulse" />
-                  <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-50 animate-pulse" />
-                </div>
-                <div>
-                  <h2 className="text-4xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                    Analyzing Media
-                  </h2>
-                  <p className="text-cyan-400 font-semibold mt-1">{currentPhase}</p>
-                </div>
-              </div>
-
-              <div className="mb-10">
-                <div className="flex justify-between mb-3">
-                  <span className="text-gray-300 font-semibold">Processing Pipeline</span>
-                  <span className="text-cyan-400 font-bold text-2xl">{Math.round(progress)}%</span>
-                </div>
-                <div className="relative w-full bg-gray-700/50 rounded-full h-4 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-                  <div
-                    className="bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 h-4 rounded-full transition-all duration-300 relative overflow-hidden"
-                    style={{ width: `${progress}%` }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-6">
-                {Object.entries(modalityData).map(([key, modal], idx) => {
-                  const Icon = modal.icon;
-                  const isActive = progress > 33 * (idx + 1);
-                  return (
-                    <div key={key} className={`bg-gray-700/30 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-500 ${
-                      isActive ? `${modal.borderColor} border-2 shadow-lg` : 'border-gray-700'
-                    }`}>
-                      <div className="flex flex-col items-center">
-                        <div className={`p-4 rounded-xl mb-4 transition-all duration-500 ${
-                          isActive ? `bg-gradient-to-br ${modal.color}` : 'bg-gray-600'
-                        }`}>
-                          <Icon className={`w-10 h-10 ${isActive ? 'text-white animate-pulse' : 'text-gray-400'}`} />
-                        </div>
-                        <span className="text-sm font-bold text-center text-gray-300 mb-3">{modal.name}</span>
-                        {isActive && (
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-6 h-6 text-green-400 animate-pulse" />
-                            <span className="text-xs text-green-400 font-semibold">Complete</span>
-                          </div>
-                        )}
-                        {!isActive && (
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 border-2 border-gray-500 border-t-cyan-400 rounded-full animate-spin" />
-                            <span className="text-xs text-gray-500 font-semibold">Processing</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-10 flex justify-center">
-                <div className="flex items-center gap-4">
-                  {[...Array(5)].map((_, i) => (
-                    <React.Fragment key={i}>
-                      <div className={`w-4 h-4 rounded-full transition-all duration-500 ${
-                        progress > i * 20 ? 'bg-cyan-400 shadow-lg shadow-cyan-400/50 animate-pulse' : 'bg-gray-600'
-                      }`} />
-                      {i < 4 && <Waves className="w-6 h-6 text-gray-600" />}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'results' && results && results.overall && (
-          <div className="space-y-8 animate-fadeIn">
-            <div className="relative group">
-              <div className={`absolute inset-0 blur-2xl opacity-30 rounded-3xl ${
-                results.overall?.authentic ? 'bg-green-500' : 'bg-red-500'
-              }`} />
-
-              <div className={`relative rounded-3xl p-10 border-2 backdrop-blur-xl ${
-                results.overall?.authentic
-                  ? 'bg-green-500/10 border-green-500'
-                  : 'bg-red-500/10 border-red-500'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-6">
-                    {results.overall?.authentic ? (
-                      <div className="relative">
-                        <CheckCircle className="w-20 h-20 text-green-400 animate-pulse" />
-                        <div className="absolute inset-0 bg-green-400 blur-xl opacity-50" />
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <AlertCircle className="w-20 h-20 text-red-400 animate-pulse" />
-                        <div className="absolute inset-0 bg-red-400 blur-xl opacity-50" />
-                      </div>
-                    )}
-                    <div>
-                      <h2 className="text-5xl font-black mb-2 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                        {!results.overall?.authentic ? 'DEEPFAKE DETECTED' : 'AUTHENTIC'}
-                      </h2>
-                      <p className="text-gray-400 text-lg flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5" />
-                        Multimodal analysis complete
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-7xl font-black bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent">
-                      {results.overall?.confidence || 0}
-                      <span className="text-4xl">%</span>
-                    </div>
-                    <div className="text-gray-400 text-lg mt-2">Confidence Level</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <ModalityCard modality="visual" data={results.visual || {}} />
-              <ModalityCard modality="audio" data={results.audio || {}} />
-              <ModalityCard modality="physiological" data={results.physiological || {}} />
-            </div>
-
-            <div className="bg-gray-800/50 backdrop-blur-xl rounded-3xl p-10 border border-gray-700/50 shadow-2xl">
-              <h3 className="text-3xl font-black mb-8 flex items-center gap-4">
-                <div className="relative">
-                  <Network className="w-10 h-10 text-cyan-400 animate-pulse" />
-                  <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-50" />
-                </div>
-                <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                  Cross-Modal Consistency Matrix
-                </span>
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {(() => {
-                  // Extra safety check for results.consistency
-                  const consistency = results?.consistency || {};
-                  const threshold = consistency.threshold || 0.75;
-                  return [
-                    { pair: 'Visual ↔ Audio', value: consistency.visualAudio || 0.75, color: 'from-blue-500 to-purple-500', threshold },
-                    { pair: 'Visual ↔ Blink', value: consistency.visualBlink || 0.75, color: 'from-blue-500 to-green-500', threshold },
-                    { pair: 'Audio ↔ Blink', value: consistency.audioBlink || 0.75, color: 'from-purple-500 to-green-500', threshold }
-                  ];
-                })().map((item, i) => (
-                  <div key={i} className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r opacity-10 blur-xl rounded-2xl" />
-
-                    <div className="relative bg-gray-700/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-600 hover:border-gray-500 transition-all">
-                      <div className="text-sm text-gray-400 mb-3 font-semibold">{item.pair}</div>
-                      <div className="text-5xl font-black mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                        {item.value.toFixed(2)}
-                      </div>
-                      <div className="relative w-full bg-gray-600/50 rounded-full h-3 overflow-hidden mb-3">
-                        <div
-                          className={`h-3 rounded-full bg-gradient-to-r ${item.value < item.threshold ? 'from-red-500 to-red-600' : 'from-green-500 to-emerald-500'} transition-all duration-1000`}
-                          style={{ width: `${item.value * 100}%` }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Threshold: {item.threshold}</span>
-                        <span className={`font-bold ${item.value < item.threshold ? 'text-red-400' : 'text-green-400'}`}>
-                          {item.value < item.threshold ? 'FAILED' : 'PASSED'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-500/5 blur-xl rounded-2xl" />
-                <div className="relative p-6 bg-yellow-500/10 border border-yellow-500/30 rounded-2xl backdrop-blur-sm">
-                  <div className="flex items-start gap-4">
-                    <AlertCircle className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-1 animate-pulse" />
-                    <div>
-                      <p className="text-yellow-300 font-semibold mb-1">Anomaly Detected</p>
-                      <p className="text-yellow-400/80 text-sm">
-                        Cross-modal inconsistencies detected below threshold (0.75). The biometric signatures across visual, audio, and physiological channels show significant divergence, indicating potential synthetic manipulation or deepfake generation.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-shimmer {
-          animation: shimmer 2s infinite;
-        }
-
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.6s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
 
-export default App;
+/* ================================================================
+   ABOUT SECTION
+   ================================================================ */
+function AboutSection() {
+  const features = [
+    {
+      icon: Eye,
+      color: 'var(--accent-cyan)',
+      gradient: 'rgba(34,211,238,0.12)',
+      title: 'Visual Analysis',
+      desc: 'EfficientNet-B4 deep learning model analyzes facial regions frame-by-frame to detect pixel-level manipulation artifacts invisible to the naked eye.',
+    },
+    {
+      icon: Mic,
+      color: 'var(--accent-violet)',
+      gradient: 'rgba(139,92,246,0.12)',
+      title: 'Audio Analysis',
+      desc: 'Spectral decomposition and MFCC feature extraction identify synthetic voice patterns, unnatural pitch shifts, and audio-visual desynchronization.',
+    },
+    {
+      icon: Activity,
+      color: 'var(--accent-emerald)',
+      gradient: 'rgba(16,185,129,0.12)',
+      title: 'Blink Dynamics',
+      desc: 'MediaPipe facial landmark tracking measures eye blink rate and patterns. Deepfakes often exhibit abnormal or absent blink behaviour.',
+    },
+  ];
+
+  const stack = [
+    { label: 'EfficientNet-B4', tag: 'Visual Model' },
+    { label: 'MTCNN', tag: 'Face Detection' },
+    { label: 'MediaPipe', tag: 'Landmark Tracking' },
+    { label: 'Librosa', tag: 'Audio DSP' },
+    { label: 'Flask + Python', tag: 'Backend API' },
+    { label: 'React + Vite', tag: 'Frontend' },
+  ];
+
+  return (
+    <section className="mt-20 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+      {/* Divider */}
+      <div className="flex items-center gap-4 mb-14">
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--border-accent))' }} />
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase"
+          style={{ background: 'rgba(34,211,238,0.06)', border: '1px solid rgba(34,211,238,0.15)', color: 'var(--accent-cyan)' }}>
+          <Info className="w-3.5 h-3.5" /> About DeepGuard
+        </div>
+        <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, var(--border-accent), transparent)' }} />
+      </div>
+
+      {/* Hero blurb */}
+      <div className="text-center max-w-3xl mx-auto mb-14">
+        <h2 className="text-3xl sm:text-4xl font-black mb-4 gradient-text">Multimodal Deepfake Detection</h2>
+        <p className="text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          DeepGuard is an AI-powered media authenticity platform that fuses <strong style={{ color: 'var(--text-primary)' }}>visual</strong>,{' '}
+          <strong style={{ color: 'var(--text-primary)' }}>audio</strong>, and{' '}
+          <strong style={{ color: 'var(--text-primary)' }}>physiological</strong> signals to deliver high-confidence verdicts on whether
+          an image or video has been synthetically generated or manipulated.
+        </p>
+      </div>
+
+      {/* Feature cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14 stagger-children max-w-5xl mx-auto">
+        {features.map(({ icon: Icon, color, gradient, title, desc }) => (
+          <div key={title} className="glass-card p-6 animate-fade-in-up">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+              style={{ background: gradient }}>
+              <Icon className="w-6 h-6" style={{ color }} />
+            </div>
+            <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* How it works */}
+      <div className="glass-card p-8 mb-14">
+        <div className="flex items-center gap-3 mb-8">
+          <Brain className="w-6 h-6" style={{ color: 'var(--accent-cyan)' }} />
+          <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>How It Works</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {[
+            { step: '01', icon: Upload, color: 'var(--accent-cyan)', title: 'Upload Media', desc: 'Drop an image or video file. Supported formats: JPG, PNG, MP4, AVI, MOV.' },
+            { step: '02', icon: Cpu, color: 'var(--accent-violet)', title: 'Pipeline Runs', desc: 'Three parallel analysis modules — visual, audio, and blink — process the media simultaneously.' },
+            { step: '03', icon: ShieldCheck, color: 'var(--accent-emerald)', title: 'Verdict Delivered', desc: 'A fusion layer weighs all signals and delivers a final Authentic or Deepfake verdict with a confidence score.' },
+          ].map(({ step, icon: Icon, color, title, desc }) => (
+            <div key={step} className="flex gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
+                  style={{ background: `${color}18`, color, border: `1px solid ${color}33` }}>
+                  {step}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Icon className="w-4 h-4" style={{ color }} />
+                  <h4 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h4>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tech stack */}
+      <div className="glass-card p-8 mb-14">
+        <div className="flex items-center gap-3 mb-6">
+          <FlaskConical className="w-6 h-6" style={{ color: 'var(--accent-violet)' }} />
+          <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Technology Stack</h3>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {stack.map(({ label, tag }) => (
+            <div key={label} className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-subtle)' }}>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{ background: 'rgba(34,211,238,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(34,211,238,0.2)' }}>
+                {tag}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="text-center py-10 mt-4" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Shield className="w-5 h-5" style={{ color: 'var(--accent-cyan)' }} />
+          <span className="font-black text-lg gradient-text">DeepGuard AI</span>
+        </div>
+        <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+          Multimodal deepfake detection · Visual · Audio · Physiological signals
+        </p>
+        <div className="flex items-center justify-center gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <Lock className="w-3 h-3" />
+          <span>Media is processed locally and never stored.</span>
+          <span className="mx-2">·</span>
+          <span>Built for academic research &amp; media authenticity.</span>
+        </div>
+        <p className="mt-6 text-xs" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+          &copy; {new Date().getFullYear()} DeepGuard — AI Research Project
+        </p>
+      </footer>
+    </section>
+  );
+}
+
+/* ================================================================
+   HEADER
+   ================================================================ */
+function Header({ backendOk }) {
+  return (
+    <header className="text-center mb-12 animate-fade-in-up">
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <div className="relative">
+          <Shield className="w-10 h-10" style={{ color: 'var(--accent-cyan)' }} />
+          <div className="absolute inset-0 rounded-full animate-pulse-ring" style={{ border: '2px solid var(--accent-cyan)', opacity: 0.3 }} />
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-black tracking-tight gradient-text">
+          DeepGuard
+        </h1>
+      </div>
+      <p className="text-lg font-medium" style={{ color: 'var(--text-secondary)' }}>
+        AI-Based Deepfake Detection System
+      </p>
+      <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
+        Multimodal analysis · Visual · Audio · Physiological · Cross-Modal Consistency
+      </p>
+
+      {/* Backend status pill */}
+      <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
+        style={{
+          background: backendOk === true ? 'rgba(16,185,129,0.1)' : backendOk === false ? 'rgba(244,63,94,0.1)' : 'rgba(255,255,255,0.05)',
+          border: `1px solid ${backendOk === true ? 'rgba(16,185,129,0.3)' : backendOk === false ? 'rgba(244,63,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
+          color: backendOk === true ? '#34d399' : backendOk === false ? '#fb7185' : 'var(--text-muted)'
+        }}>
+        <div className="w-2 h-2 rounded-full" style={{
+          background: backendOk === true ? '#34d399' : backendOk === false ? '#f43f5e' : '#64748b',
+          boxShadow: backendOk === true ? '0 0 8px rgba(52,211,153,0.5)' : 'none',
+        }} />
+        {backendOk === true ? 'Backend Connected' : backendOk === false ? 'Backend Offline' : 'Checking…'}
+      </div>
+    </header>
+  );
+}
+
+/* ================================================================
+   UPLOAD SECTION
+   ================================================================ */
+function UploadSection({ file, fileType, filePreview, onFilePick, onDragOver, onDrop, clearFile, startAnalysis, backendOk, error }) {
+  const openImagePicker = () => { const el = document.getElementById('image-input'); if (el) { el.value = ''; el.click(); } };
+  const openVideoPicker = () => { const el = document.getElementById('video-input'); if (el) { el.value = ''; el.click(); } };
+
+  return (
+    <div className="max-w-2xl mx-auto animate-fade-in-up delay-200">
+      {/* Hidden inputs – outside the drop zone to avoid event conflicts */}
+      <input id="image-input" type="file" accept="image/*" className="hidden" onChange={onFilePick} />
+      <input id="video-input" type="file" accept="video/*" className="hidden" onChange={onFilePick} />
+
+      <div className="glass-card p-8">
+        {/* Upload zone */}
+        <div className={`upload-zone ${file ? 'has-file' : ''}`}
+          onClick={() => !file && openImagePicker()}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          >
+          {!file ? (
+            <>
+              <div className="relative inline-block mb-4">
+                <Upload className="w-14 h-14 mx-auto" style={{ color: 'var(--accent-cyan)', opacity: 0.7 }} />
+              </div>
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+                Upload Media for Analysis
+              </h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
+                Drag & drop or click to select · Images (JPG, PNG) or Videos (MP4, AVI, MOV)
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); openImagePicker(); }}>
+                  <FileImage className="w-4 h-4" /> Image
+                </button>
+                <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); openVideoPicker(); }}>
+                  <FileVideo className="w-4 h-4" /> Video
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-4">
+              {/* Preview thumbnail */}
+              <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-black/30 flex items-center justify-center">
+                {fileType === 'image' && filePreview ? (
+                  <img src={filePreview} alt="preview" className="w-full h-full object-cover" />
+                ) : fileType === 'video' ? (
+                  <FileVideo className="w-8 h-8" style={{ color: 'var(--accent-violet)' }} />
+                ) : (
+                  <FileImage className="w-8 h-8" style={{ color: 'var(--accent-cyan)' }} />
+                )}
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{file.name}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {fileType === 'video' ? 'Video' : 'Image'} · {(file.size / (1024 * 1024)).toFixed(1)} MB
+                </p>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); clearFile(); }} className="p-2 rounded-lg hover:bg-white/5 transition">
+                <X className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mt-4 p-3 rounded-xl flex items-start gap-3" style={{ background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)' }}>
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#f43f5e' }} />
+            <p className="text-sm" style={{ color: '#fb7185' }}>{error}</p>
+          </div>
+        )}
+
+        {/* Backend warning */}
+        {file && backendOk === false && (
+          <div className="mt-4 p-3 rounded-xl flex items-start gap-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#fbbf24' }}>Backend Not Connected</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Start the backend: <code className="px-1.5 py-0.5 rounded text-xs" style={{ background: 'rgba(255,255,255,0.06)' }}>python run.py</code></p>
+            </div>
+          </div>
+        )}
+
+        {/* Analyze button */}
+        {file && (
+          <div className="mt-6 text-center">
+            <button
+              className="btn-primary text-lg px-10 py-4"
+              onClick={startAnalysis}
+              disabled={!backendOk}
+            >
+              <Play className="w-5 h-5" />
+              Start Deep Analysis
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Feature cards */}
+      <div className="grid grid-cols-3 gap-3 mt-6 stagger-children">
+        {[
+          { icon: Eye, label: 'Visual Analysis', desc: 'EfficientNet + face detection', color: 'var(--accent-cyan)' },
+          { icon: Mic, label: 'Audio Analysis', desc: 'Spectral & MFCC features', color: 'var(--accent-violet)' },
+          { icon: Activity, label: 'Blink Dynamics', desc: 'MediaPipe eye tracking', color: 'var(--accent-emerald)' },
+        ].map(({ icon: Icon, label, desc, color }) => (
+          <div key={label} className="glass-card p-4 text-center animate-fade-in-up">
+            <Icon className="w-6 h-6 mx-auto mb-2" style={{ color }} />
+            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{label}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   ANALYZING SECTION
+   ================================================================ */
+function AnalyzingSection({ progress, currentStep }) {
+  const pipelineSteps = [
+    { label: 'Visual', icon: Eye, threshold: 15 },
+    { label: 'Audio', icon: Mic, threshold: 40 },
+    { label: 'Blink', icon: Activity, threshold: 60 },
+    { label: 'Consistency', icon: BarChart3, threshold: 80 },
+  ];
+
+  return (
+    <div className="max-w-3xl mx-auto animate-fade-in-up">
+      <div className="glass-card p-10">
+        {/* Title */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="relative">
+            <Brain className="w-10 h-10 animate-spin-slow" style={{ color: 'var(--accent-cyan)' }} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              Analyzing Media
+            </h2>
+            <p className="text-sm font-medium mt-1" style={{ color: 'var(--accent-cyan)' }}>
+              {currentStep}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Processing Pipeline</span>
+            <span className="text-lg font-bold" style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-cyan)' }}>
+              {Math.round(progress)}%
+            </span>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+
+        {/* Pipeline steps */}
+        <div className="grid grid-cols-4 gap-4">
+          {pipelineSteps.map(({ label, icon: Icon, threshold }) => {
+            const active = progress >= threshold;
+            const done = progress >= threshold + 20;
+            return (
+              <div key={label} className="text-center p-4 rounded-xl transition-all duration-500" style={{
+                background: active ? 'rgba(34,211,238,0.06)' : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${active ? 'rgba(34,211,238,0.2)' : 'var(--border-subtle)'}`,
+              }}>
+                <div className="w-12 h-12 mx-auto rounded-xl flex items-center justify-center mb-3" style={{
+                  background: active ? 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(59,130,246,0.15))' : 'rgba(255,255,255,0.04)',
+                }}>
+                  {done ? (
+                    <CheckCircle2 className="w-6 h-6" style={{ color: '#34d399' }} />
+                  ) : active ? (
+                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--accent-cyan)' }} />
+                  ) : (
+                    <Icon className="w-6 h-6" style={{ color: 'var(--text-muted)' }} />
+                  )}
+                </div>
+                <p className="text-xs font-semibold" style={{ color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>{label}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   RESULTS SECTION
+   ================================================================ */
+function ResultsSection({ results, fileType, onReset }) {
+  const overall = results?.overall || {};
+  const isAuthentic = overall.authentic;
+  const confidence = overall.confidence || 0;
+  const isImage = fileType === 'image';
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 stagger-children">
+      {/* Verdict banner */}
+      <VerdictBanner isAuthentic={isAuthentic} confidence={confidence} verdict={overall.verdict} />
+
+      {/* Modality cards */}
+      <div className={`grid grid-cols-1 ${isImage ? 'max-w-md mx-auto' : 'md:grid-cols-3'} gap-4`}>
+        <ModalityCard
+          title="Visual Analysis"
+          icon={Eye}
+          color="var(--accent-cyan)"
+          gradientFrom="rgba(34,211,238,0.12)"
+          data={results.visual}
+        />
+        {!isImage && (
+          <>
+            <ModalityCard
+              title="Audio Analysis"
+              icon={Mic}
+              color="var(--accent-violet)"
+              gradientFrom="rgba(139,92,246,0.12)"
+              data={results.audio}
+            />
+            <ModalityCard
+              title="Blink Dynamics"
+              icon={Activity}
+              color="var(--accent-emerald)"
+              gradientFrom="rgba(16,185,129,0.12)"
+              data={results.physiological}
+            />
+          </>
+        )}
+      </div>
+
+
+
+      {/* Reset button */}
+      <div className="text-center pt-4 animate-fade-in-up">
+        <button className="btn-secondary text-base px-8 py-3" onClick={onReset}>
+          <Upload className="w-4 h-4" /> Analyze Another File
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   VERDICT BANNER
+   ================================================================ */
+function VerdictBanner({ isAuthentic, confidence, verdict }) {
+  const accentColor = isAuthentic ? 'var(--accent-emerald)' : 'var(--accent-rose)';
+  const bgGlow = isAuthentic ? 'rgba(16,185,129,0.06)' : 'rgba(244,63,94,0.06)';
+  const borderColor = isAuthentic ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)';
+
+  return (
+    <div className="animate-fade-in-up glass-card p-8" style={{
+      background: `linear-gradient(135deg, ${bgGlow}, transparent)`,
+      borderColor,
+      boxShadow: isAuthentic ? 'var(--shadow-glow-cyan)' : 'var(--shadow-glow-rose)',
+    }}>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="relative">
+            {isAuthentic ? (
+              <ShieldCheck className="w-16 h-16" style={{ color: accentColor }} />
+            ) : (
+              <ShieldAlert className="w-16 h-16" style={{ color: accentColor }} />
+            )}
+            <div className="absolute inset-0 rounded-full" style={{
+              background: accentColor,
+              filter: 'blur(20px)',
+              opacity: 0.2,
+            }} />
+          </div>
+          <div>
+            <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isAuthentic ? 'gradient-text-emerald' : 'gradient-text-rose'}`}>
+              {verdict || (isAuthentic ? 'AUTHENTIC' : 'DEEPFAKE DETECTED')}
+            </h2>
+            <p className="mt-1 text-sm flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+              <TrendingUp className="w-4 h-4" />
+              Multimodal analysis complete
+            </p>
+          </div>
+        </div>
+
+        {/* Confidence ring */}
+        <div className="text-center flex-shrink-0">
+          <div className="relative w-28 h-28">
+            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke={accentColor} strokeWidth="6"
+                strokeDasharray={`${confidence * 2.64} 264`}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.4,0,0.2,1)' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                {confidence}
+              </span>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+            </div>
+          </div>
+          <p className="text-xs mt-1 font-medium" style={{ color: 'var(--text-muted)' }}>Confidence</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
+   MODALITY CARD
+   ================================================================ */
+function ModalityCard({ title, icon: Icon, color, gradientFrom, data }) {
+  const score = data?.score ?? 0;
+  const status = data?.status || 'unknown';
+  const timeline = data?.timeline || [0,0,0,0,0];
+  const details = data?.features || data?.metrics || data?.artifacts || [];
+
+  const statusClass = status === 'authentic' ? 'status-authentic'
+    : status === 'suspicious' ? 'status-suspicious'
+    : status === 'fake' ? 'status-fake'
+    : 'status-suspicious';
+
+  const statusLabel = status === 'authentic' ? 'Authentic'
+    : status === 'suspicious' ? 'Suspicious'
+    : status === 'fake' ? 'Fake Detected'
+    : 'N/A';
+
+  const maxTimeline = Math.max(...timeline, 1);
+
+  return (
+    <div className="glass-card p-6 animate-fade-in-up">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: gradientFrom }}>
+          <Icon className="w-5 h-5" style={{ color }} />
+        </div>
+        <div>
+          <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{title}</h3>
+          <span className={`status-badge mt-1 ${statusClass}`}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'currentColor' }} />
+            {statusLabel}
+          </span>
+        </div>
+      </div>
+
+      {/* Score */}
+      <div className="flex items-end justify-between mb-3">
+        <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Score</span>
+        <span className="text-3xl font-black" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+          {score}<span className="text-base font-semibold" style={{ color: 'var(--text-muted)' }}>%</span>
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="progress-track mb-5">
+        <div className="progress-fill" style={{ width: `${Math.min(score, 100)}%`, background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
+      </div>
+
+      {/* Mini timeline */}
+      <div className="flex items-end gap-1 h-10 mb-4">
+        {timeline.map((v, i) => (
+          <div key={i} className="flex-1 flex items-end">
+            <div className="w-full rounded-t transition-all duration-700"
+              style={{
+                height: `${Math.max((v / maxTimeline) * 100, 4)}%`,
+                background: `linear-gradient(to top, ${color}88, ${color}33)`,
+                minHeight: 2,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Details */}
+      {details.length > 0 && (
+        <div className="space-y-1.5">
+          {details.slice(0, 3).map((d, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              <Info className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color }} />
+              <span>{d}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
