@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Upload, Play, AlertTriangle, CheckCircle2, Activity, Eye, Mic,
-  Brain, Zap, Shield, TrendingUp, BarChart3, FileVideo, FileImage,
+  Brain, Shield, TrendingUp, BarChart3, FileVideo, FileImage,
   Loader2, ShieldCheck, ShieldAlert, X, ChevronRight, Info,
-  Cpu, Lock, FlaskConical, Github, Globe, BookOpen, Users, Layers
+  Cpu, Lock, FlaskConical
 } from 'lucide-react';
 
 /* ================================================================

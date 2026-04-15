@@ -1,239 +1,88 @@
-# Deepfake Detection System - Setup Guide
+# DeepGuard Setup & Installation Guide
 
-This guide will help you set up and run the complete Deepfake Detection system with both frontend and backend components.
-
-## System Overview
-
-The system consists of:
-- **Frontend**: React-based web application (`deepfake-detector/`)
-- **Backend**: Flask API server (`backend/`)
-- **ML Models**: Trained deepfake detection models (`project1 (1)/project1/`)
+This guide will walk you through setting up and running the DeepGuard Multimodal Deepfake Detection platform locally. This comprises setting up the Python Flask background processor and the React frontend.
 
 ## Prerequisites
 
-### Required Software
-- **Python 3.8+** (for backend and ML models)
-- **Node.js 16+** (for frontend)
-- **npm** or **yarn** (package manager)
-- **Git** (optional, for version control)
+Before starting, ensure your system has the following installed:
+- **Python 3.8 to 3.10**: Required for the ML pipelines, PyTorch, and MediaPipe.
+- **Node.js (v16+)** & **npm**: Required for the React interface.
+- **Git**
 
-### Hardware Requirements
-- **RAM**: Minimum 4GB, Recommended 8GB+
-- **Storage**: 2GB free space
-- **GPU**: Optional but recommended for faster processing (CUDA-compatible)
+***Note on GPU hardware***: While a GPU (NVIDIA + CUDA) is not strictly required, deep learning model inference (EfficientNet, MTCNN) will be significantly faster with a CUDA-capable GPU.
 
-## Quick Start
+---
 
-### 1. Backend Setup
+## 1. Backend Setup (Flask + ML Models)
 
-#### Windows:
-```bash
-# Run the automated setup script
-start_backend.bat
-```
+The backend handles the heavy lifting: running face extraction, blink rate calculation, and image classification.
 
-#### Linux/Mac:
-```bash
-# Make script executable and run
-chmod +x start_backend.sh
-./start_backend.sh
-```
-
-#### Manual Setup:
-```bash
-cd backend
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux/Mac
-source venv/bin/activate
-
-pip install -r requirements.txt
-python run.py
-```
-
-### 2. Frontend Setup
-
-```bash
-cd deepfake-detector/deepfake-detector
-npm install
-npm start
-```
-
-### 3. Access the Application
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **API Health Check**: http://localhost:5000/api/health
-
-## Detailed Setup Instructions
-
-### Backend Configuration
-
-1. **Model Files**: Ensure these files exist in `project1 (1)/project1/`:
-   - `best_deepfake_detector.pth` (PyTorch model)
-   - `fake_face_detector_pytorch.joblib` (scikit-learn model)
-
-2. **Environment Variables** (optional):
+1. **Navigate to the Backend Directory**:
    ```bash
-   export FLASK_ENV=development
-   export FLASK_DEBUG=True
+   cd backend
    ```
 
-3. **GPU Support** (optional):
+2. **Create a Virtual Environment**:
+   It is highly recommended to isolate your Python dependencies.
    ```bash
-   # Install CUDA-compatible PyTorch
-   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   python -m venv venv
    ```
 
-### Frontend Configuration
+3. **Activate the Virtual Environment**:
+   - **Windows**: `venv\Scripts\activate`
+   - **Mac/Linux**: `source venv/bin/activate`
 
-1. **API Endpoint**: The frontend is configured to connect to `http://localhost:5000`
-2. **File Upload**: Supports images (PNG, JPG) and videos (MP4, AVI, MOV)
-3. **File Size Limit**: Maximum 500MB per file
+4. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   *(Optional)* If you have an NVIDIA GPU, you may want to install the CUDA-accelerated version of PyTorch by following the instructions at [pytorch.org](https://pytorch.org/).
 
-## API Endpoints
+5. **Start the API Server**:
+   ```bash
+   python run.py
+   ```
+   The backend should start and listen on `http://localhost:5000`. Keep this terminal window open.
 
-### Health Check
-```
-GET /api/health
-```
-Returns server status and model information.
+---
 
-### Analyze Media
-```
-POST /api/analyze
-Content-Type: multipart/form-data
-Body: file (image or video)
-```
+## 2. Frontend Setup (React.js)
 
-### Model Status
-```
-GET /api/models/status
-```
-Returns loaded model status.
+The React frontend provides the sleek dark-mode glassmorphism UI for uploading media and visualizing the results.
+
+1. **Open a New Terminal Window**.
+
+2. **Navigate to the Frontend Directory**:
+   ```bash
+   cd deepfake-detector/deepfake-detector
+   ```
+
+3. **Install Node Packages**:
+   ```bash
+   npm install
+   ```
+
+4. **Start the Development Server**:
+   ```bash
+   npm start
+   ```
+   *(If prompted that port 3000 is taken, type `Y` to automatically start on another port like 3001).*
+
+5. **Open the Application**:
+   Open a web browser and navigate to `http://localhost:3000`. You should see the DeepGuard interface and a green "Backend Connected" pill.
+
+---
 
 ## Troubleshooting
 
-### Common Issues
+- **"Backend Offline" on the Frontend**:
+  Ensure the Python server is running, listening on port 5000, and is not producing errors. Ensure you haven't closed the backend terminal.
 
-#### 1. Backend Won't Start
-- **Check Python version**: `python --version` (should be 3.8+)
-- **Check dependencies**: `pip list` to verify all packages installed
-- **Check model files**: Ensure model files exist in correct location
-- **Check ports**: Ensure port 5000 is not in use
+- **Missing Model Errors**:
+  Ensure that you have extracted the `deepfake.zip` models payload and placed the necessary `.pth`, `.joblib`, or `.h5` model weight files in the directory referenced by `app.py` or the `backend/models/` folder as structured in your local implementation.
 
-#### 2. Models Not Loading
-- Verify model file paths in `backend/app.py`
-- Check file permissions
-- Ensure sufficient memory (4GB+ recommended)
+- **MediaPipe / OpenCV Camera Errors**:
+  These dependencies sometimes require specific OS libraries (e.g., `libgl1-mesa-glx` on Linux headless servers). On Windows/Mac, pip usually handles the binary installations flawlessly.
 
-#### 3. Frontend Connection Issues
-- Verify backend is running on port 5000
-- Check browser console for CORS errors
-- Ensure both frontend and backend are running
-
-#### 4. File Upload Errors
-- Check file size (max 500MB)
-- Verify file format is supported
-- Check backend logs for specific errors
-
-#### 5. Performance Issues
-- Use GPU acceleration if available
-- Reduce file size for faster processing
-- Close other applications to free memory
-
-### Logs and Debugging
-
-#### Backend Logs
-- Check console output when running `python run.py`
-- Logs include model loading status and processing information
-
-#### Frontend Logs
-- Open browser Developer Tools (F12)
-- Check Console tab for JavaScript errors
-- Check Network tab for API request/response details
-
-## Development
-
-### Adding New Features
-
-#### Backend
-1. Add new endpoints in `app.py`
-2. Implement analysis functions
-3. Update response format
-4. Test with frontend integration
-
-#### Frontend
-1. Add new components in `src/components/`
-2. Update API calls in `App.jsx`
-3. Modify UI to display new features
-4. Test with backend integration
-
-### Model Integration
-
-To add new ML models:
-1. Place model files in appropriate directory
-2. Update `load_models()` function in `app.py`
-3. Implement prediction function
-4. Update API response format
-5. Test with sample data
-
-## Production Deployment
-
-### Backend
-```bash
-# Use Gunicorn for production
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-### Frontend
-```bash
-# Build for production
-npm run build
-
-# Serve with a web server (nginx, Apache, etc.)
-```
-
-### Security Considerations
-- Configure proper CORS settings
-- Implement authentication if needed
-- Use HTTPS in production
-- Validate all uploaded files
-- Implement rate limiting
-
-## Support
-
-### Getting Help
-1. Check this setup guide first
-2. Review error logs and console output
-3. Verify all prerequisites are met
-4. Test with sample files
-
-### File Structure
-```
-Proto/
-├── backend/                 # Flask API server
-│   ├── app.py              # Main application
-│   ├── config.py           # Configuration
-│   ├── requirements.txt    # Python dependencies
-│   └── run.py             # Startup script
-├── deepfake-detector/      # React frontend
-│   └── deepfake-detector/
-│       ├── src/
-│       └── package.json
-├── project1 (1)/           # ML models and training
-│   └── project1/
-│       ├── best_deepfake_detector.pth
-│       ├── fake_face_detector_pytorch.joblib
-│       └── ...
-├── start_backend.bat       # Windows startup script
-├── start_backend.sh        # Linux/Mac startup script
-└── SETUP_GUIDE.md         # This file
-```
-
-## License
-
-This project is part of the Deepfake Detection system. Please refer to the main project documentation for license information.
+- **CORS Issues**:
+  If the frontend blocks the request on upload, verify `Flask-CORS` is active in `backend/app.py`.

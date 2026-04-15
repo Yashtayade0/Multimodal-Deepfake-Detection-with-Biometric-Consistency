@@ -1,36 +1,50 @@
-# Dependency directories
+# ==========================================
+# Dependencies
+# ==========================================
 node_modules/
 venv/
 env/
+ENV/
+.env
+.env.*
 __pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
 
-# Build outputs
+# ==========================================
+# Build Outputs
+# ==========================================
 dist/
 build/
+coverage/
 
-# Large files
-*.zip
-deepfake.zip
-
-# System files
-.DS_Store
-Thumbs.db
-
+# ==========================================
 # Logs
+# ==========================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# IDE
+# ==========================================
+# System & IDE
+# ==========================================
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
+*.suo
+*.sln
+*.sw?
 
-# Backups/Other
-project1 (1)/
+# ==========================================
+# Project Specific
+# ==========================================
+*.zip
+deepfake.zip
 uploads/
+project1 (1)/
+project1/
+backend/uploads/

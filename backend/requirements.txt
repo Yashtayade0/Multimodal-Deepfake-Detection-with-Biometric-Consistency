@@ -10,3 +10,7 @@ facenet-pytorch==2.5.3
 Pillow==10.0.0
 Werkzeug==2.3.7
 gunicorn==21.2.0
+librosa==0.10.1
+mediapipe==0.10.9
+scipy==1.11.4
+soundfile==0.12.1
