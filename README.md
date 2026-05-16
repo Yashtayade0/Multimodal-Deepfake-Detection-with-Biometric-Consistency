@@ -136,7 +136,7 @@ DeepGuard/
 │       └── package.json            # Node dependencies
 │
 ├── project1 (1)/                   # ML model weights directory
-│   └── project1/                   # (populated by model download script)
+│   └── project1/                   # Place model files here
 │
 ├── start_backend.bat               # One-click Windows startup script
 ├── start_backend.sh                # One-click Linux/macOS startup script
@@ -148,9 +148,7 @@ DeepGuard/
 
 ## 📦 Pre-trained Models
 
-The ML model weights are hosted on **HuggingFace Hub** (too large for GitHub):
-
-> 🤗 **[yashtayade0908/deepguard-deepfake-detector](https://huggingface.co/yashtayade0908/deepguard-deepfake-detector)**
+The ML model weights are included directly in this repository under `project1 (1)/project1/`.
 
 | Model File | Size | Description |
 |---|---|---|
@@ -158,22 +156,7 @@ The ML model weights are hosted on **HuggingFace Hub** (too large for GitHub):
 | `best_deepfake_detector_cnn.pth` | ~65 MB | CNN-based deepfake detector |
 | `fake_face_detector_pytorch.joblib` | ~12 MB | Sklearn ensemble face classifier |
 
-### Download Models Automatically
-
-```bash
-pip install huggingface_hub
-
-python -c "
-from huggingface_hub import hf_hub_download
-import os
-dest = 'project1 (1)/project1/'
-os.makedirs(dest, exist_ok=True)
-for f in ['best_deepfake_detector.pth', 'best_deepfake_detector_cnn.pth', 'fake_face_detector_pytorch.joblib']:
-    hf_hub_download(repo_id='yashtayade0908/deepguard-deepfake-detector', filename=f, local_dir=dest)
-    print(f'Downloaded {f}')
-print('All models downloaded successfully!')
-"
-```
+No additional download steps are needed — clone the repo and the models are ready to use.
 
 ---
 
@@ -208,11 +191,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Download ML Models
-
-Run the download script from the **root** of the project (see [Pre-trained Models](#-pre-trained-models) section above).
-
-### 4. Start the Backend
+### 3. Start the Backend
 
 ```bash
 # From the backend/ directory
@@ -231,7 +210,7 @@ bash start_backend.sh
 
 The API will start at `http://localhost:5000`.
 
-### 5. Start the Frontend
+### 4. Start the Frontend
 
 ```bash
 cd deepfake-detector/deepfake-detector
