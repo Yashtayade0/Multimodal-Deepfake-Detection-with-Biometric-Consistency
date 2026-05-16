@@ -1,17 +1,42 @@
 # ==========================================
-# Dependencies
+# Python
 # ==========================================
-node_modules/
-venv/
-env/
-ENV/
-.env
-.env.*
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
 .eggs/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================================
+# Virtual Environments
+# ==========================================
+venv/
+env/
+ENV/
+.venv/
+gpu_env/
+tf_gpu_env/
+
+# ==========================================
+# Environment / Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Node / Frontend
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
 
 # ==========================================
 # Build Outputs
@@ -19,20 +44,21 @@ __pycache__/
 dist/
 build/
 coverage/
+.next/
+out/
 
 # ==========================================
 # Logs
 # ==========================================
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+logs/
 
 # ==========================================
 # System & IDE
 # ==========================================
 .DS_Store
 Thumbs.db
+desktop.ini
 .vscode/
 .idea/
 *.suo
@@ -40,11 +66,37 @@ Thumbs.db
 *.sw?
 
 # ==========================================
+# ML Model Files (large binaries)
+# ==========================================
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.hdf5
+*.pb
+*.joblib
+*.pkl
+*.safetensors
+
+# ==========================================
+# Media / Upload Artifacts
+# ==========================================
+uploads/
+backend/uploads/
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+prediction_result.jpg
+prediction_result*.jpg
+
+# ==========================================
 # Project Specific
 # ==========================================
 *.zip
 deepfake.zip
-uploads/
 project1 (1)/
 project1/
-backend/uploads/
+.git_backup/
+real_test.txt
