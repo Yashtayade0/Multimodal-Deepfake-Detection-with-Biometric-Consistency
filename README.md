@@ -33,6 +33,35 @@ DeepGuard/
 └── README.md                    # This file
 ```
 
+## 📦 Pre-trained Models
+
+The ML model weights are hosted on HuggingFace Hub (too large for GitHub):
+
+👉 **[yashtayade0908/deepguard-deepfake-detector](https://huggingface.co/yashtayade0908/deepguard-deepfake-detector)**
+
+| Model File | Size | Description |
+|---|---|---|
+| `best_deepfake_detector.pth` | ~18 MB | EfficientNet visual detector |
+| `best_deepfake_detector_cnn.pth` | ~65 MB | CNN deepfake detector |
+| `fake_face_detector_pytorch.joblib` | ~12 MB | Sklearn ensemble model |
+
+### Download models automatically:
+
+```bash
+pip install huggingface_hub
+
+python -c "
+from huggingface_hub import hf_hub_download
+import os
+dest = 'project1 (1)/project1/'
+os.makedirs(dest, exist_ok=True)
+for f in ['best_deepfake_detector.pth', 'best_deepfake_detector_cnn.pth', 'fake_face_detector_pytorch.joblib']:
+    hf_hub_download(repo_id='yashtayade0908/deepguard-deepfake-detector', filename=f, local_dir=dest)
+    print(f'Downloaded {f}')
+print('All models downloaded!')
+"
+```
+
 ## Getting Started
 
 Please see the [**SETUP_GUIDE.md**](./SETUP_GUIDE.md) for detailed, step-by-step instructions on installing dependencies, downloading the deep learning weights, and running the application locally.
