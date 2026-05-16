@@ -68,13 +68,14 @@ desktop.ini
 # ==========================================
 # ML Model Files (large binaries)
 # ==========================================
-*.pth
+# Note: .pth and .joblib files are tracked with Git LFS
+# *.pth  # Commented out - using Git LFS
+# *.joblib  # Commented out - using Git LFS
 *.pt
 *.ckpt
 *.h5
 *.hdf5
 *.pb
-*.joblib
 *.pkl
 *.safetensors
 
@@ -96,7 +97,7 @@ prediction_result*.jpg
 # ==========================================
 *.zip
 deepfake.zip
-project1 (1)/
-project1/
+# project1 (1)/  # Commented out - models will be tracked with Git LFS
+# project1/  # Commented out - models will be tracked with Git LFS
 .git_backup/
 real_test.txt
